@@ -1,56 +1,91 @@
-
 import streamlit as st
 import pandas as pd
 import joblib
-from pathlib import Path
 
-st.set_page_config(page_title="Customer Churn Prediction", page_icon="📊")
-
+st.set_page_config(page_title="Customer Churn Prediction", layout="wide")
 st.title("📊 Customer Churn Prediction")
+st.sidebar.title("About")
 
-if not Path("model.pkl").exists() or not Path("preprocessor.pkl").exists():
-    st.warning(
-        "model.pkl and/or preprocessor.pkl were not found. "
-        "Train your model first and save them with joblib."
-    )
-    st.stop()
+st.sidebar.info("""
+This application predicts whether a customer
+is likely to churn using a Machine Learning model.
+""")
 
-model = joblib.load("model.pkl")
-preprocessor = joblib.load("preprocessor.pkl")
+model=joblib.load("model.pkl")
+preprocessor=joblib.load("preprocessor.pkl")
 
-st.write("Enter customer information:")
-
-gender = st.selectbox("Gender", ["Male", "Female"])
-senior = st.selectbox("Senior Citizen", [0, 1])
-partner = st.selectbox("Partner", ["Yes", "No"])
-dependents = st.selectbox("Dependents", ["Yes", "No"])
-tenure = st.number_input("Tenure (months)", 0, 100, 12)
-monthly = st.number_input("Monthly Charges", 0.0, 500.0, 70.0)
-total = st.number_input("Total Charges", 0.0, 100000.0, 1000.0)
-
+c1,c2=st.columns(2)
+st.header("Customer Information")
+with c1:
+    gender=st.selectbox("Gender",["Male","Female"])
+    senior=st.selectbox("Senior Citizen",[0,1])
+    partner=st.selectbox("Partner",["Yes","No"])
+    dependents=st.selectbox("Dependents",["Yes","No"])
+    st.header("Services")
+    phone=st.selectbox("Phone Service",["Yes","No"])
+    multiple=st.selectbox("Multiple Lines",["Yes","No","No phone service"])
+    internet=st.selectbox("Internet Service",["DSL","Fiber optic","No"])
+    security=st.selectbox("Online Security",["Yes","No","No internet service"])
+    backup=st.selectbox("Online Backup",["Yes","No","No internet service"])
+    device=st.selectbox("Device Protection",["Yes","No","No internet service"])
+with c2:
+    tech=st.selectbox("Tech Support",["Yes","No","No internet service"])
+    tv=st.selectbox("Streaming TV",["Yes","No","No internet service"])
+    movies=st.selectbox("Streaming Movies",["Yes","No","No internet service"])
+    st.header("Billing")
+    contract=st.selectbox("Contract",["Month-to-month","One year","Two year"])
+    paperless=st.selectbox("Paperless Billing",["Yes","No"])
+    payment=st.selectbox("Payment Method",["Electronic check","Mailed check","Bank transfer (automatic)","Credit card (automatic)"])
+    tenure=st.number_input("Tenure Months",0,100,12)
+    monthly=st.number_input("Monthly Charges",0.0,500.0,70.0)
+    total=st.number_input("Total Charges",0.0,100000.0,1000.0)
+    cltv=st.number_input("CLTV",0,10000,3000)
 if st.button("Predict"):
-    st.info(
-        "Replace the DataFrame below with ALL features used during training. "
-        "This template only demonstrates deployment."
-    )
+
     data = pd.DataFrame({
-        "Gender":[gender],
-        "Senior Citizen":[senior],
-        "Partner":[partner],
-        "Dependents":[dependents],
-        "Tenure Months":[tenure],
-        "Monthly Charges":[monthly],
-        "Total Charges":[total],
+        "Gender": [gender],
+        "Senior Citizen": [senior],
+        "Partner": [partner],
+        "Dependents": [dependents],
+        "Phone Service": [phone],
+        "Multiple Lines": [multiple],
+        "Internet Service": [internet],
+        "Online Security": [security],
+        "Online Backup": [backup],
+        "Device Protection": [device],
+        "Tech Support": [tech],
+        "Streaming TV": [tv],
+        "Streaming Movies": [movies],
+        "Contract": [contract],
+        "Paperless Billing": [paperless],
+        "Payment Method": [payment],
+        "Tenure Months": [tenure],
+        "Monthly Charges": [monthly],
+        "Total Charges": [total],
+        "CLTV": [cltv],
+        "Count": [1]
     })
-    try:
-        X = preprocessor.transform(data)
-        pred = model.predict(X)[0]
-        if hasattr(model, "predict_proba"):
-            prob = model.predict_proba(X)[0][1]
-            st.metric("Churn Probability", f"{prob:.1%}")
-        if pred == 1:
-            st.error("Likely to churn")
-        else:
-            st.success("Not likely to churn")
-    except Exception as e:
-        st.exception(e)
+
+    X = preprocessor.transform(data)
+
+    pred = model.predict(X)[0]
+
+    prob = model.predict_proba(X)[0]
+
+    if pred == 1:
+        st.error("⚠️ Customer is likely to churn.")
+    else:
+        st.success("✅ Customer is likely to stay.")
+
+    st.subheader("Prediction Probability")
+
+    st.write(f"🟢 Stay Probability: {prob[0]:.2%}")
+    st.write(f"🔴 Churn Probability: {prob[1]:.2%}")
+
+    st.progress(int(prob[1] * 100))
+
+    st.metric(
+        "Churn Probability",
+        f"{prob[1] * 100:.1f}%"
+    )
+
